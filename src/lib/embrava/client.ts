@@ -98,9 +98,17 @@ class EmbravaClient {
       throw new Error(`Failed to get webhooks: ${response.status} ${response.statusText}`);
     }
 
-    const data: WebhookResponse = await response.json();
+    const data = await response.json();
+    console.log('Get webhooks response:', JSON.stringify(data, null, 2));
 
-    if (data.Id !== 0) {
+    // Handle different response formats
+    // The API may return { Id, Message, data } or just an array
+    if (Array.isArray(data)) {
+      return data;
+    }
+
+    // Check for error response (Id !== 0 means error)
+    if (typeof data.Id === 'number' && data.Id !== 0) {
       throw new Error(`Failed to get webhooks: ${data.Message}`);
     }
 
@@ -127,10 +135,15 @@ class EmbravaClient {
       throw new Error(`Failed to create webhook: ${response.status} ${response.statusText}`);
     }
 
-    const data: WebhookResponse = await response.json();
+    const data = await response.json();
+    console.log('Create webhook response:', JSON.stringify(data, null, 2));
 
-    if (data.Id !== 0) {
-      throw new Error(`Failed to create webhook: ${data.Message}`);
+    // Handle both lowercase and uppercase response fields
+    const id = data.Id ?? data.id;
+    const message = data.Message ?? data.message;
+
+    if (typeof id === 'number' && id !== 0) {
+      throw new Error(`Failed to create webhook: ${message}`);
     }
 
     console.log(`Created ${type} webhook: ${url}`);
@@ -140,10 +153,10 @@ class EmbravaClient {
   /**
    * Delete a webhook by ID.
    */
-  async deleteWebhook(id: number): Promise<void> {
+  async deleteWebhook(webhookId: number): Promise<void> {
     const headers = await this.getAuthHeader();
 
-    const response = await fetch(`${this.baseUrl}/hook/${id}`, {
+    const response = await fetch(`${this.baseUrl}/hook/${webhookId}`, {
       method: 'DELETE',
       headers,
     });
@@ -152,13 +165,18 @@ class EmbravaClient {
       throw new Error(`Failed to delete webhook: ${response.status} ${response.statusText}`);
     }
 
-    const data: WebhookResponse = await response.json();
+    const data = await response.json();
+    console.log('Delete webhook response:', JSON.stringify(data, null, 2));
 
-    if (data.Id !== 0) {
-      throw new Error(`Failed to delete webhook: ${data.Message}`);
+    // Handle both lowercase and uppercase response fields
+    const id = data.Id ?? data.id;
+    const message = data.Message ?? data.message;
+
+    if (typeof id === 'number' && id !== 0) {
+      throw new Error(`Failed to delete webhook: ${message}`);
     }
 
-    console.log(`Deleted webhook: ${id}`);
+    console.log(`Deleted webhook: ${webhookId}`);
   }
 
   /**
