@@ -13,8 +13,9 @@ function shouldDeleteWebhook(url: string): boolean {
  * Register webhooks with the Embrava DMS.
  * This function:
  * 1. Gets all existing webhooks
- * 2. Deletes webhooks matching our patterns (ngrok, localhost, etc.)
- * 3. Registers new EVENT and WORKSPACE webhooks
+ * 2. Checks if desired webhooks already exist with correct configuration
+ * 3. Deletes old webhooks matching our patterns (ngrok, localhost, etc.) that don't match current config
+ * 4. Registers new EVENT and WORKSPACE webhooks only if needed
  */
 export async function registerWebhooks(baseUrl: string): Promise<void> {
   const webhookSecret = process.env.WEBHOOK_SECRET;
@@ -30,14 +31,40 @@ export async function registerWebhooks(baseUrl: string): Promise<void> {
   console.log('Starting webhook registration...');
   console.log(`Base URL: ${baseUrl}`);
 
+  const eventWebhookUrl = `${baseUrl}/api/embrava/events`;
+  const workspaceWebhookUrl = `${baseUrl}/api/embrava/workspace`;
+
   // 1. Get all existing webhooks
   console.log('Fetching existing webhooks...');
   const existingWebhooks = await embravaClient.getWebhooks();
   console.log(`Found ${existingWebhooks.length} existing webhooks`);
 
-  // 2. Delete webhooks matching our patterns
-  const webhooksToDelete = existingWebhooks.filter((wh) => shouldDeleteWebhook(wh.url));
-  console.log(`Found ${webhooksToDelete.length} webhooks to delete`);
+  // 2. Check if our desired webhooks already exist
+  const existingEventWebhook = existingWebhooks.find(
+    (wh) => wh.url === eventWebhookUrl && wh.type === 'EVENT' && wh.secret === webhookSecret
+  );
+  const existingWorkspaceWebhook = existingWebhooks.find(
+    (wh) => wh.url === workspaceWebhookUrl && wh.type === 'WORKSPACE' && wh.secret === webhookSecret
+  );
+
+  if (existingEventWebhook) {
+    console.log(`EVENT webhook already exists with correct config (id: ${existingEventWebhook.id})`);
+  }
+  if (existingWorkspaceWebhook) {
+    console.log(`WORKSPACE webhook already exists with correct config (id: ${existingWorkspaceWebhook.id})`);
+  }
+
+  // 3. Delete old webhooks that match our patterns but aren't the current ones
+  const webhooksToDelete = existingWebhooks.filter((wh) => {
+    // Skip if it's one of our current webhooks
+    if (wh.id === existingEventWebhook?.id || wh.id === existingWorkspaceWebhook?.id) {
+      return false;
+    }
+    // Delete if it matches our cleanup patterns
+    return shouldDeleteWebhook(wh.url);
+  });
+
+  console.log(`Found ${webhooksToDelete.length} old webhooks to delete`);
 
   for (const webhook of webhooksToDelete) {
     try {
@@ -48,26 +75,28 @@ export async function registerWebhooks(baseUrl: string): Promise<void> {
     }
   }
 
-  // 3. Register new EVENT webhook
-  const eventWebhookUrl = `${baseUrl}/api/embrava/events`;
-  console.log(`Registering EVENT webhook: ${eventWebhookUrl}`);
-  try {
-    await embravaClient.createWebhook(eventWebhookUrl, webhookSecret, 'EVENT');
-    console.log('EVENT webhook registered successfully');
-  } catch (error) {
-    console.error('Failed to register EVENT webhook:', error);
-    throw error;
+  // 4. Register new EVENT webhook if it doesn't exist
+  if (!existingEventWebhook) {
+    console.log(`Registering EVENT webhook: ${eventWebhookUrl}`);
+    try {
+      await embravaClient.createWebhook(eventWebhookUrl, webhookSecret, 'EVENT');
+      console.log('EVENT webhook registered successfully');
+    } catch (error) {
+      console.error('Failed to register EVENT webhook:', error);
+      throw error;
+    }
   }
 
-  // 4. Register new WORKSPACE webhook
-  const workspaceWebhookUrl = `${baseUrl}/api/embrava/workspace`;
-  console.log(`Registering WORKSPACE webhook: ${workspaceWebhookUrl}`);
-  try {
-    await embravaClient.createWebhook(workspaceWebhookUrl, webhookSecret, 'WORKSPACE');
-    console.log('WORKSPACE webhook registered successfully');
-  } catch (error) {
-    console.error('Failed to register WORKSPACE webhook:', error);
-    throw error;
+  // 5. Register new WORKSPACE webhook if it doesn't exist
+  if (!existingWorkspaceWebhook) {
+    console.log(`Registering WORKSPACE webhook: ${workspaceWebhookUrl}`);
+    try {
+      await embravaClient.createWebhook(workspaceWebhookUrl, webhookSecret, 'WORKSPACE');
+      console.log('WORKSPACE webhook registered successfully');
+    } catch (error) {
+      console.error('Failed to register WORKSPACE webhook:', error);
+      throw error;
+    }
   }
 
   console.log('Webhook registration complete!');

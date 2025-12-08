@@ -16,10 +16,9 @@ export async function POST(request: NextRequest) {
 
   if (!expectedSecret || secret !== expectedSecret) {
     console.warn('Unauthorized webhook call - invalid secret');
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    );
+    const response = { error: 'Unauthorized' };
+    console.log('Sending response:', JSON.stringify(response, null, 2));
+    return NextResponse.json(response, { status: 401 });
   }
 
   try {
@@ -52,6 +51,7 @@ export async function POST(request: NextRequest) {
         Sat: ['false', '00:00:00', '00:00:00'],
         Sun: ['false', '00:00:00', '00:00:00'],
       };
+      console.log('Sending response:', JSON.stringify(defaultResponse, null, 2));
       return NextResponse.json(defaultResponse);
     }
 
@@ -74,12 +74,12 @@ export async function POST(request: NextRequest) {
       Sun: workplace.sun as [string, string, string],
     };
 
+    console.log('Sending response:', JSON.stringify(response, null, 2));
     return NextResponse.json(response);
   } catch (error) {
     console.error('Error processing workspace request:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    const response = { error: 'Internal server error' };
+    console.log('Sending response:', JSON.stringify(response, null, 2));
+    return NextResponse.json(response, { status: 500 });
   }
 }

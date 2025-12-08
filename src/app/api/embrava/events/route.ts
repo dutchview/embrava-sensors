@@ -15,10 +15,9 @@ export async function POST(request: NextRequest) {
 
   if (!expectedSecret || secret !== expectedSecret) {
     console.warn('Unauthorized webhook call - invalid secret');
-    return NextResponse.json(
-      { ID: 1, Message: 'Unauthorized' },
-      { status: 401 }
-    );
+    const response = { id: 1, message: 'Unauthorized' };
+    console.log('Sending response:', JSON.stringify(response, null, 2));
+    return NextResponse.json(response, { status: 401 });
   }
 
   try {
@@ -34,20 +33,20 @@ export async function POST(request: NextRequest) {
       deskSignId: body.DeskSignID,
       booking: body.booking
         ? {
-            id: body.booking.ID,
-            startTime: body.booking.startTime ? new Date(body.booking.startTime) : null,
-            endTime: body.booking.endTime ? new Date(body.booking.endTime) : null,
-            badgeNumber: body.booking.badgeNumber || '',
-            employeeId: body.booking.employeeID || '',
-            action: body.booking.Action,
-            deskId: body.booking.deskId || '',
-          }
+          id: body.booking.ID,
+          startTime: body.booking.startTime ? new Date(body.booking.startTime) : null,
+          endTime: body.booking.endTime ? new Date(body.booking.endTime) : null,
+          badgeNumber: body.booking.badgeNumber || '',
+          employeeId: body.booking.employeeID || '',
+          action: body.booking.Action,
+          deskId: body.booking.deskId || '',
+        }
         : null,
       status: body.status
         ? {
-            state: body.status.state,
-            value: parseInt(body.status.value, 10),
-          }
+          state: body.status.state,
+          value: parseInt(body.status.value, 10),
+        }
         : null,
       rawPayload: body,
     });
@@ -56,18 +55,19 @@ export async function POST(request: NextRequest) {
     console.log(`Event saved: ${event._id}`);
 
     // Return success response in Embrava's expected format
-    return NextResponse.json({
-      ID: 0,
-      Message: 'Workspace event successfully received',
-    });
+    const response = {
+      id: 0,
+      message: 'Workspace event successfully received',
+    };
+    console.log('Sending response:', JSON.stringify(response, null, 2));
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Error processing event:', error);
-    return NextResponse.json(
-      {
-        ID: 1,
-        Message: 'Error processing event',
-      },
-      { status: 500 }
-    );
+    const response = {
+      id: 1,
+      message: 'Error processing event',
+    };
+    console.log('Sending response:', JSON.stringify(response, null, 2));
+    return NextResponse.json(response, { status: 500 });
   }
 }

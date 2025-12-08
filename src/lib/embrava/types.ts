@@ -25,8 +25,8 @@ export interface WebhookCreateRequest {
 }
 
 export interface WebhookResponse {
-  Id: number;
-  Message: string;
+  id: number;
+  message: string;
   data: Webhook[];
 }
 
@@ -122,7 +122,7 @@ export interface AlertRequest {
 
 // Generic API Response
 export interface ApiResponse<T = unknown> {
-  Id: number;
-  Message: string;
+  id: number;
+  message: string;
   data?: T;
 }

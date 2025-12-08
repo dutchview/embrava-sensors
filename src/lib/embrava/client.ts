@@ -107,9 +107,9 @@ class EmbravaClient {
       return data;
     }
 
-    // Check for error response (Id !== 0 means error)
-    if (typeof data.Id === 'number' && data.Id !== 0) {
-      throw new Error(`Failed to get webhooks: ${data.Message}`);
+    // Check for error response (id !== 0 means error)
+    if (typeof data.id === 'number' && data.id !== 0) {
+      throw new Error(`Failed to get webhooks: ${data.message}`);
     }
 
     return data.data || [];
@@ -138,12 +138,8 @@ class EmbravaClient {
     const data = await response.json();
     console.log('Create webhook response:', JSON.stringify(data, null, 2));
 
-    // Handle both lowercase and uppercase response fields
-    const id = data.Id ?? data.id;
-    const message = data.Message ?? data.message;
-
-    if (typeof id === 'number' && id !== 0) {
-      throw new Error(`Failed to create webhook: ${message}`);
+    if (typeof data.id === 'number' && data.id !== 0) {
+      throw new Error(`Failed to create webhook: ${data.message}`);
     }
 
     console.log(`Created ${type} webhook: ${url}`);
@@ -168,12 +164,8 @@ class EmbravaClient {
     const data = await response.json();
     console.log('Delete webhook response:', JSON.stringify(data, null, 2));
 
-    // Handle both lowercase and uppercase response fields
-    const id = data.Id ?? data.id;
-    const message = data.Message ?? data.message;
-
-    if (typeof id === 'number' && id !== 0) {
-      throw new Error(`Failed to delete webhook: ${message}`);
+    if (typeof data.id === 'number' && data.id !== 0) {
+      throw new Error(`Failed to delete webhook: ${data.message}`);
     }
 
     console.log(`Deleted webhook: ${webhookId}`);
@@ -197,8 +189,8 @@ class EmbravaClient {
 
     const data: ApiResponse = await response.json();
 
-    if (data.Id !== 0) {
-      throw new Error(`Failed to create booking: ${data.Message}`);
+    if (data.id !== 0) {
+      throw new Error(`Failed to create booking: ${data.message}`);
     }
   }
 
@@ -239,8 +231,8 @@ class EmbravaClient {
 
     const data: ApiResponse = await response.json();
 
-    if (data.Id !== 0) {
-      throw new Error(`Failed to send alert: ${data.Message}`);
+    if (data.id !== 0) {
+      throw new Error(`Failed to send alert: ${data.message}`);
     }
   }
 }
