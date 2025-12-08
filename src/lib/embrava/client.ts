@@ -5,6 +5,7 @@ import {
   BookingRequest,
   AlertRequest,
   ApiResponse,
+  BookingResponse,
 } from './types';
 
 interface CachedToken {
@@ -177,27 +178,41 @@ class EmbravaClient {
   async createBooking(booking: BookingRequest): Promise<void> {
     const headers = await this.getAuthHeader();
 
+    console.log('Creating booking with request:', JSON.stringify(booking, null, 2));
+
     const response = await fetch(`${this.baseUrl}/Booking`, {
       method: 'POST',
       headers,
       body: JSON.stringify(booking),
     });
 
+    console.log('Create booking response status:', response.status, response.statusText);
+
     if (!response.ok) {
-      throw new Error(`Failed to create booking: ${response.status} ${response.statusText}`);
+      // Log the error response body
+      const errorText = await response.text();
+      console.error('Create booking error response:', errorText);
+      throw new Error(`Failed to create booking: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data: ApiResponse = await response.json();
+    console.log('Create booking response data:', JSON.stringify(data, null, 2));
 
-    if (data.id !== 0) {
-      throw new Error(`Failed to create booking: ${data.message}`);
+    // Handle both uppercase and lowercase response fields
+    const id = (data as any).ID ?? data.id;
+    const message = (data as any).Message ?? data.message;
+
+    if (typeof id === 'number' && id !== 0) {
+      throw new Error(`Failed to create booking: ${message}`);
     }
+
+    console.log('Booking created successfully');
   }
 
   /**
-   * Get bookings for a Desk Sign.
+   * Get all bookings for a Desk Sign.
    */
-  async getBookings(deskSignId: string): Promise<unknown[]> {
+  async getBookings(deskSignId: string): Promise<BookingResponse[]> {
     const headers = await this.getAuthHeader();
 
     const response = await fetch(`${this.baseUrl}/Booking/${deskSignId}`, {
@@ -210,7 +225,59 @@ class EmbravaClient {
     }
 
     const data = await response.json();
-    return Array.isArray(data) ? data : [data];
+    console.log('Get bookings response:', JSON.stringify(data, null, 2));
+
+    // Handle response format: { id, message, result: [] }
+    if (data.result && Array.isArray(data.result)) {
+      return data.result;
+    }
+
+    // Fallback to direct array or wrapped data
+    if (Array.isArray(data)) {
+      return data;
+    }
+
+    return [];
+  }
+
+  /**
+   * Delete a booking.
+   * To delete, send a booking request with Cancel: 1
+   */
+  async deleteBooking(bookingId: string, deskSignId: string): Promise<void> {
+    const headers = await this.getAuthHeader();
+
+    // To delete a booking, we send a POST with Cancel: 1
+    const deleteRequest: BookingRequest = {
+      DeskSignID: deskSignId,
+      BookingID: bookingId,
+      FirstName: '',
+      LastName: '',
+      StartTime: '',
+      EndTime: '',
+      CheckedIn: 0,
+      Cancel: 1,
+      BadgeNumber: '',
+      EmployeeId: '',
+    };
+
+    const response = await fetch(`${this.baseUrl}/Booking`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(deleteRequest),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete booking: ${response.status} ${response.statusText}`);
+    }
+
+    const data: ApiResponse = await response.json();
+
+    if (data.id !== 0) {
+      throw new Error(`Failed to delete booking: ${data.message}`);
+    }
+
+    console.log(`Deleted booking: ${bookingId}`);
   }
 
   /**

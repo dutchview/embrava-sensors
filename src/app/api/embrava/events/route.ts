@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
   if (!expectedSecret || secret !== expectedSecret) {
     console.warn('Unauthorized webhook call - invalid secret');
-    const response = { id: 1, message: 'Unauthorized' };
+    const response = { ID: 1, Message: 'Unauthorized' };
     console.log('Sending response:', JSON.stringify(response, null, 2));
     return NextResponse.json(response, { status: 401 });
   }
@@ -56,16 +56,16 @@ export async function POST(request: NextRequest) {
 
     // Return success response in Embrava's expected format
     const response = {
-      id: 0,
-      message: 'Workspace event successfully received',
+      ID: 0,
+      Message: 'Workspace event successfully received',
     };
     console.log('Sending response:', JSON.stringify(response, null, 2));
     return NextResponse.json(response);
   } catch (error) {
     console.error('Error processing event:', error);
     const response = {
-      id: 1,
-      message: 'Error processing event',
+      ID: 1,
+      Message: 'Error processing event',
     };
     console.log('Sending response:', JSON.stringify(response, null, 2));
     return NextResponse.json(response, { status: 500 });
