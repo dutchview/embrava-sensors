@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase, Event, Employee } from '@/lib/db';
-import type { EmbravaEvent } from '@/lib/embrava/types';
+import { embravaClient } from '@/lib/embrava/client';
+import type { EmbravaEvent, BookingRequest } from '@/lib/embrava/types';
 
 /**
  * POST /api/embrava/events
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
     await event.save();
     console.log(`Event saved: ${event._id}`);
 
-    // Check if this is a CREATE action - validate the employee
+    // Check if this is a CREATE action - validate the employee and create booking
     if (body.booking?.Action === 'CREATE' && body.booking?.badgeNumber) {
       const employee = await Employee.findOne({ badgeNumber: body.booking.badgeNumber });
 
@@ -69,6 +70,45 @@ export async function POST(request: NextRequest) {
       }
 
       console.log(`Employee found: ${employee.firstName} ${employee.lastName} (${employee.email})`);
+
+      // Create booking in Embrava
+      const now = new Date();
+      const endOfDay = new Date(now);
+      endOfDay.setHours(18, 0, 0, 0);
+
+      // Generate a random booking ID
+      const bookingId = `BK-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+      // Format dates as "yyyy-MM-ddTHH:mm:ssZ"
+      const formatDate = (date: Date): string => {
+        return date.toISOString().replace(/\.\d{3}Z$/, 'Z');
+      };
+
+      const bookingRequest: BookingRequest = {
+        DeskSignID: body.DeskSignID,
+        BookingID: bookingId,
+        FirstName: employee.firstName,
+        LastName: employee.lastName,
+        StartTime: formatDate(now),
+        EndTime: formatDate(endOfDay),
+        CheckedIn: 1,
+        Cancel: 0,
+        BadgeNumber: body.booking.badgeNumber,
+        EmployeeId: employee.employeeId,
+      };
+
+      try {
+        await embravaClient.createBooking(bookingRequest);
+        console.log(`Booking created in Embrava: ${bookingId} for ${employee.firstName} ${employee.lastName}`);
+      } catch (bookingError) {
+        console.error('Failed to create booking in Embrava:', bookingError);
+        const response = {
+          ID: 1,
+          Message: 'Failed to create booking in Embrava',
+        };
+        console.log('Sending response:', JSON.stringify(response, null, 2));
+        return NextResponse.json(response);
+      }
     }
 
     // Return success response in Embrava's expected format
