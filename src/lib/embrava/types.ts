@@ -89,17 +89,17 @@ export interface BookingRequest {
 }
 
 export interface BookingResponse {
-  ID: number;
-  RMSBookingID: string;
-  FirstName: string;
-  LastName: string;
-  IsCheckedIn: boolean;
-  StartTime: string;
-  EndTime: string;
-  Timezone: string;
-  BadgeNumber: string;
-  EmployeeId: string;
-  DeskSignID: string;
+  id: number;
+  rmsBookingId: string;
+  firstName: string;
+  lastName: string;
+  isCheckedIn: boolean;
+  startTime: string;
+  endTime: string;
+  timezone: string;
+  badgeNumber: string;
+  employeeId: string;
+  deskSignId: string;
 }
 
 // Alert (sent to Embrava)
