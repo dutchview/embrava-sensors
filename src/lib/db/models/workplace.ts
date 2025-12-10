@@ -30,10 +30,10 @@ const dayAvailabilityValidator = {
 };
 
 // Default day availability (disabled)
-const defaultDayAvailability: DayAvailability = ['false', '00:00:00', '00:00:00'];
+const defaultDayAvailability: DayAvailability = ['false', '00:00:00', '23:59:00'];
 
-// Default working hours (enabled, 9am-6pm)
-const defaultWorkingHours: DayAvailability = ['true', '09:00:00', '18:00:00'];
+// Default working hours (enabled, all day)
+const defaultWorkingHours: DayAvailability = ['true', '00:00:00', '23:59:00'];
 
 // Day availability schema options
 const DayAvailabilitySchemaOptions = {
@@ -66,8 +66,8 @@ const WorkplaceSchema = new Schema<IWorkplace>(
     wed: { ...DayAvailabilitySchemaOptions, default: defaultWorkingHours },
     thu: { ...DayAvailabilitySchemaOptions, default: defaultWorkingHours },
     fri: { ...DayAvailabilitySchemaOptions, default: defaultWorkingHours },
-    sat: DayAvailabilitySchemaOptions,
-    sun: DayAvailabilitySchemaOptions,
+    sat: { ...DayAvailabilitySchemaOptions, default: defaultWorkingHours },
+    sun: { ...DayAvailabilitySchemaOptions, default: defaultWorkingHours },
   },
   {
     timestamps: true,

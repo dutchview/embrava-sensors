@@ -40,8 +40,8 @@ interface WorkplaceFormProps {
   isEditing?: boolean;
 }
 
-const defaultAvailability: DayAvailability = ['true', '09:00:00', '18:00:00'];
-const disabledAvailability: DayAvailability = ['false', '00:00:00', '00:00:00'];
+const defaultAvailability: DayAvailability = ['true', '00:00:00', '23:59:00'];
+const disabledAvailability: DayAvailability = ['false', '00:00:00', '23:59:00'];
 
 export function WorkplaceForm({ workplace, isEditing = false }: WorkplaceFormProps) {
   const router = useRouter();
@@ -59,8 +59,8 @@ export function WorkplaceForm({ workplace, isEditing = false }: WorkplaceFormPro
     wed: (workplace?.wed as DayAvailability) || defaultAvailability,
     thu: (workplace?.thu as DayAvailability) || defaultAvailability,
     fri: (workplace?.fri as DayAvailability) || defaultAvailability,
-    sat: (workplace?.sat as DayAvailability) || disabledAvailability,
-    sun: (workplace?.sun as DayAvailability) || disabledAvailability,
+    sat: (workplace?.sat as DayAvailability) || defaultAvailability,
+    sun: (workplace?.sun as DayAvailability) || defaultAvailability,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
