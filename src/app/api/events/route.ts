@@ -2,6 +2,33 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase, Event } from '@/lib/db';
 
 /**
+ * DELETE /api/events
+ *
+ * Delete all events from the database.
+ *
+ * Returns the count of deleted events.
+ */
+export async function DELETE() {
+  try {
+    await connectToDatabase();
+
+    const result = await Event.deleteMany({});
+
+    return NextResponse.json({
+      success: true,
+      deletedCount: result.deletedCount,
+      message: `Successfully deleted ${result.deletedCount} events`,
+    });
+  } catch (error) {
+    console.error('Error deleting events:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete events' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
  * GET /api/events
  *
  * List events with pagination and optional filters.
