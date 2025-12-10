@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { RefreshCw, User, Clock, Calendar, LogIn, LogOut, X } from 'lucide-react';
+import { NewBookingDialog } from './new-booking-dialog';
 
 interface Employee {
   firstName: string;
@@ -31,9 +32,10 @@ interface Booking {
 
 interface WorkplaceBookingsProps {
   workplaceId: string;
+  deskSignId: string;
 }
 
-export function WorkplaceBookings({ workplaceId }: WorkplaceBookingsProps) {
+export function WorkplaceBookings({ workplaceId, deskSignId }: WorkplaceBookingsProps) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -149,11 +151,16 @@ export function WorkplaceBookings({ workplaceId }: WorkplaceBookingsProps) {
         {error && (
           <p className="text-sm text-destructive">{error}</p>
         )}
-        <div className="ml-auto">
+        <div className="ml-auto flex gap-2">
           <Button onClick={fetchBookings} variant="outline" size="sm" disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
+          <NewBookingDialog
+            workplaceId={workplaceId}
+            deskSignId={deskSignId}
+            onBookingCreated={fetchBookings}
+          />
         </div>
       </div>
 

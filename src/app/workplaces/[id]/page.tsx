@@ -72,7 +72,7 @@ export default function EditWorkplacePage({ params }: EditWorkplacePageProps) {
         </TabsContent>
 
         <TabsContent value="bookings" className="mt-6">
-          <WorkplaceBookings workplaceId={id} />
+          <WorkplaceBookings workplaceId={id} deskSignId={workplace.deskSignId} />
         </TabsContent>
 
         <TabsContent value="events" className="mt-6">
