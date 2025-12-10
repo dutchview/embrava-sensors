@@ -55,15 +55,16 @@ export async function POST(request: NextRequest) {
     await event.save();
     console.log(`Event saved: ${event._id}`);
 
-    // Check if this is a CREATE action - validate the employee and create booking
-    if (body.booking?.Action === 'CREATE' && body.booking?.badgeNumber) {
+    // Handle CREATE (new booking), CHECKIN (check into existing booking), and CHECKOUT actions
+    const action = body.booking?.Action;
+    if ((action === 'CREATE' || action === 'CHECKIN' || action === 'CHECKOUT') && body.booking?.badgeNumber) {
       const employee = await Employee.findOne({ badgeNumber: body.booking.badgeNumber });
 
       if (!employee) {
-        console.log(`Unknown badge number: ${body.booking.badgeNumber} - rejecting check-in`);
+        console.log(`Unknown badge number: ${body.booking.badgeNumber} - rejecting ${action.toLowerCase()}`);
         const response = {
           ID: 1,
-          Message: `Unknown user - badge number ${body.booking.badgeNumber} is not registered. Check-in denied.`,
+          Message: `Unknown user - badge number ${body.booking.badgeNumber} is not registered. ${action === 'CHECKOUT' ? 'Check-out' : 'Check-in'} denied.`,
         };
         console.log('Sending response:', JSON.stringify(response, null, 2));
         return NextResponse.json(response);
@@ -71,13 +72,16 @@ export async function POST(request: NextRequest) {
 
       console.log(`Employee found: ${employee.firstName} ${employee.lastName} (${employee.email})`);
 
-      // Create booking in Embrava
+      // Create/update booking in Embrava
       const now = new Date();
       const endOfDay = new Date(now);
       endOfDay.setHours(18, 0, 0, 0);
 
-      // Generate a random booking ID
-      const bookingId = `BK-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      // Use booking ID from event if provided and not "0", otherwise generate a new one
+      const hasValidBookingId = body.booking.ID && body.booking.ID !== '0';
+      const bookingId = hasValidBookingId
+        ? body.booking.ID
+        : `BK-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
       // Format dates as "yyyy-MM-ddTHH:mm:ssZ"
       const formatDate = (date: Date): string => {
@@ -91,7 +95,7 @@ export async function POST(request: NextRequest) {
         LastName: employee.lastName,
         StartTime: formatDate(now),
         EndTime: formatDate(endOfDay),
-        CheckedIn: 1,
+        CheckedIn: action === 'CHECKOUT' ? 0 : 1,
         Cancel: 0,
         BadgeNumber: body.booking.badgeNumber,
         EmployeeId: employee.employeeId,
@@ -99,12 +103,13 @@ export async function POST(request: NextRequest) {
 
       try {
         await embravaClient.createBooking(bookingRequest);
-        console.log(`Booking created in Embrava: ${bookingId} for ${employee.firstName} ${employee.lastName}`);
+        const actionLabel = action === 'CHECKOUT' ? 'Check-out' : 'Check-in';
+        console.log(`${actionLabel} booking sent to Embrava: ${bookingId} for ${employee.firstName} ${employee.lastName}`);
       } catch (bookingError) {
-        console.error('Failed to create booking in Embrava:', bookingError);
+        console.error('Failed to send booking to Embrava:', bookingError);
         const response = {
           ID: 1,
-          Message: 'Failed to create booking in Embrava',
+          Message: 'Failed to send booking to Embrava',
         };
         console.log('Sending response:', JSON.stringify(response, null, 2));
         return NextResponse.json(response);
