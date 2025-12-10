@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase, Event } from '@/lib/db';
+import { connectToDatabase, Event, Employee } from '@/lib/db';
 import type { EmbravaEvent } from '@/lib/embrava/types';
 
 /**
@@ -53,6 +53,23 @@ export async function POST(request: NextRequest) {
 
     await event.save();
     console.log(`Event saved: ${event._id}`);
+
+    // Check if this is a CREATE action - validate the employee
+    if (body.booking?.Action === 'CREATE' && body.booking?.badgeNumber) {
+      const employee = await Employee.findOne({ badgeNumber: body.booking.badgeNumber });
+
+      if (!employee) {
+        console.log(`Unknown badge number: ${body.booking.badgeNumber} - rejecting check-in`);
+        const response = {
+          ID: 1,
+          Message: `Unknown user - badge number ${body.booking.badgeNumber} is not registered. Check-in denied.`,
+        };
+        console.log('Sending response:', JSON.stringify(response, null, 2));
+        return NextResponse.json(response);
+      }
+
+      console.log(`Employee found: ${employee.firstName} ${employee.lastName} (${employee.email})`);
+    }
 
     // Return success response in Embrava's expected format
     const response = {
