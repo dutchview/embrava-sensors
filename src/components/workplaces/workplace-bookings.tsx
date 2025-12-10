@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCw, User, Clock, Calendar } from 'lucide-react';
+import { RefreshCw, User, Clock, Calendar, LogIn, LogOut, X } from 'lucide-react';
 
 interface Employee {
   firstName: string;
@@ -37,6 +37,7 @@ export function WorkplaceBookings({ workplaceId }: WorkplaceBookingsProps) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const fetchBookings = async () => {
     setIsLoading(true);
@@ -59,6 +60,45 @@ export function WorkplaceBookings({ workplaceId }: WorkplaceBookingsProps) {
     fetchBookings();
   }, [workplaceId]);
 
+  const handleBookingAction = async (
+    booking: Booking,
+    action: 'cancel' | 'checkin' | 'checkout'
+  ) => {
+    const actionKey = `${booking.rmsBookingId}-${action}`;
+    setActionLoading(actionKey);
+
+    try {
+      const response = await fetch(
+        `/api/workplaces/${workplaceId}/bookings/${booking.rmsBookingId}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action,
+            firstName: booking.firstName,
+            lastName: booking.lastName,
+            badgeNumber: booking.badgeNumber,
+            employeeId: booking.employeeId,
+            startTime: booking.startTime,
+            endTime: booking.endTime,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to ${action} booking`);
+      }
+
+      // Refresh bookings after successful action
+      await fetchBookings();
+    } catch (err) {
+      console.error(`Error performing ${action}:`, err);
+      setError(err instanceof Error ? err.message : `Failed to ${action} booking`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const formatTime = (dateString: string) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
@@ -78,7 +118,7 @@ export function WorkplaceBookings({ workplaceId }: WorkplaceBookingsProps) {
     });
   };
 
-  if (isLoading) {
+  if (isLoading && bookings.length === 0) {
     return (
       <div className="space-y-4">
         <div className="flex justify-end">
@@ -91,7 +131,7 @@ export function WorkplaceBookings({ workplaceId }: WorkplaceBookingsProps) {
     );
   }
 
-  if (error) {
+  if (error && bookings.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-destructive mb-4">{error}</p>
@@ -105,11 +145,16 @@ export function WorkplaceBookings({ workplaceId }: WorkplaceBookingsProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button onClick={fetchBookings} variant="outline" size="sm">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+      <div className="flex justify-between items-center">
+        {error && (
+          <p className="text-sm text-destructive">{error}</p>
+        )}
+        <div className="ml-auto">
+          <Button onClick={fetchBookings} variant="outline" size="sm" disabled={isLoading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {bookings.length === 0 ? (
@@ -126,9 +171,11 @@ export function WorkplaceBookings({ workplaceId }: WorkplaceBookingsProps) {
                     <User className="h-5 w-5" />
                     {booking.firstName} {booking.lastName}
                   </CardTitle>
-                  <Badge variant={booking.isCheckedIn ? 'default' : 'secondary'}>
-                    {booking.isCheckedIn ? 'Checked In' : 'Not Checked In'}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={booking.isCheckedIn ? 'default' : 'secondary'}>
+                      {booking.isCheckedIn ? 'Checked In' : 'Not Checked In'}
+                    </Badge>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -180,6 +227,40 @@ export function WorkplaceBookings({ workplaceId }: WorkplaceBookingsProps) {
                     </div>
                   </div>
                 )}
+
+                {/* Action Buttons */}
+                <div className="mt-4 pt-4 border-t flex gap-2 justify-end">
+                  {booking.isCheckedIn ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleBookingAction(booking, 'checkout')}
+                      disabled={actionLoading === `${booking.rmsBookingId}-checkout`}
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      {actionLoading === `${booking.rmsBookingId}-checkout` ? 'Checking out...' : 'Check Out'}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleBookingAction(booking, 'checkin')}
+                      disabled={actionLoading === `${booking.rmsBookingId}-checkin`}
+                    >
+                      <LogIn className="h-4 w-4 mr-2" />
+                      {actionLoading === `${booking.rmsBookingId}-checkin` ? 'Checking in...' : 'Check In'}
+                    </Button>
+                  )}
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleBookingAction(booking, 'cancel')}
+                    disabled={actionLoading === `${booking.rmsBookingId}-cancel`}
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    {actionLoading === `${booking.rmsBookingId}-cancel` ? 'Cancelling...' : 'Cancel'}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
