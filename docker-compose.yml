@@ -1,6 +1,7 @@
 services:
   mongodb:
     image: mongo:7
+    pull_policy: if_not_present
     container_name: embrava-mongodb
     ports:
       - "27017:27017"
