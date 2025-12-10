@@ -72,7 +72,7 @@ export function EmployeeTable({ employees, onDelete }: EmployeeTableProps) {
         </TableHeader>
         <TableBody>
           {employees.map((employee) => (
-            <TableRow key={employee._id}>
+            <TableRow key={employee._id.toString()}>
               <TableCell className="font-medium">
                 {employee.firstName} {employee.lastName}
               </TableCell>
@@ -106,7 +106,7 @@ export function EmployeeTable({ employees, onDelete }: EmployeeTableProps) {
                       className="text-destructive"
                       onClick={() =>
                         handleDelete(
-                          employee._id,
+                          employee._id.toString(),
                           `${employee.firstName} ${employee.lastName}`
                         )
                       }

@@ -19,6 +19,7 @@ class EmbravaClient {
   private organizationId: string;
   private secretKey: string;
   private cachedToken: CachedToken | null = null;
+  private refreshInterval: NodeJS.Timeout | null = null;
 
   constructor() {
     this.baseUrl = process.env.EMBRAVA_API_BASE_URL || 'https://eusfuncapp01.azurewebsites.net/api';
@@ -28,6 +29,58 @@ class EmbravaClient {
     if (!this.organizationId || !this.secretKey) {
       console.warn('Embrava credentials not configured. Set EMBRAVA_ORGANIZATION_ID and EMBRAVA_SECRET_KEY.');
     }
+  }
+
+  /**
+   * Start the scheduled token refresh job (every 5 minutes).
+   * This ensures we always have a fresh token before it expires.
+   */
+  startTokenRefreshJob(): void {
+    if (this.refreshInterval) {
+      console.log('Token refresh job already running');
+      return;
+    }
+
+    const REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
+    console.log('Starting token refresh job (every 5 minutes)');
+
+    // Immediately authenticate on startup
+    this.authenticate().catch((error) => {
+      console.error('Initial authentication failed:', error);
+    });
+
+    // Schedule periodic refresh
+    this.refreshInterval = setInterval(async () => {
+      try {
+        console.log('Scheduled token refresh triggered');
+        await this.forceReauthenticate();
+      } catch (error) {
+        console.error('Scheduled token refresh failed:', error);
+      }
+    }, REFRESH_INTERVAL_MS);
+
+    // Ensure the interval doesn't prevent process exit
+    this.refreshInterval.unref();
+  }
+
+  /**
+   * Stop the scheduled token refresh job.
+   */
+  stopTokenRefreshJob(): void {
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+      this.refreshInterval = null;
+      console.log('Token refresh job stopped');
+    }
+  }
+
+  /**
+   * Force re-authentication by clearing the cached token.
+   */
+  async forceReauthenticate(): Promise<string> {
+    this.cachedToken = null;
+    return this.authenticate();
   }
 
   /**
@@ -85,14 +138,39 @@ class EmbravaClient {
   }
 
   /**
+   * Make an authenticated request with automatic retry on 401.
+   * If a 401 is received, force re-authentication and retry once.
+   */
+  private async authenticatedFetch(
+    url: string,
+    options: RequestInit = {},
+    retried = false
+  ): Promise<Response> {
+    const headers = await this.getAuthHeader();
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...headers,
+        ...(options.headers || {}),
+      },
+    });
+
+    // Handle 401 Unauthorized - token may have expired
+    if (response.status === 401 && !retried) {
+      console.log('Received 401 Unauthorized, attempting to re-authenticate...');
+      await this.forceReauthenticate();
+      return this.authenticatedFetch(url, options, true);
+    }
+
+    return response;
+  }
+
+  /**
    * Get all webhooks registered for the organization.
    */
   async getWebhooks(): Promise<Webhook[]> {
-    const headers = await this.getAuthHeader();
-
-    const response = await fetch(`${this.baseUrl}/hook`, {
+    const response = await this.authenticatedFetch(`${this.baseUrl}/hook`, {
       method: 'GET',
-      headers,
     });
 
     if (!response.ok) {
@@ -120,11 +198,8 @@ class EmbravaClient {
    * Create a new webhook.
    */
   async createWebhook(url: string, secret: string, type: 'EVENT' | 'WORKSPACE'): Promise<Webhook> {
-    const headers = await this.getAuthHeader();
-
-    const response = await fetch(`${this.baseUrl}/hook`, {
+    const response = await this.authenticatedFetch(`${this.baseUrl}/hook`, {
       method: 'POST',
-      headers,
       body: JSON.stringify({
         url,
         secret,
@@ -151,11 +226,8 @@ class EmbravaClient {
    * Delete a webhook by ID.
    */
   async deleteWebhook(webhookId: number): Promise<void> {
-    const headers = await this.getAuthHeader();
-
-    const response = await fetch(`${this.baseUrl}/hook/${webhookId}`, {
+    const response = await this.authenticatedFetch(`${this.baseUrl}/hook/${webhookId}`, {
       method: 'DELETE',
-      headers,
     });
 
     if (!response.ok) {
@@ -176,13 +248,10 @@ class EmbravaClient {
    * Create or update a booking on a Desk Sign.
    */
   async createBooking(booking: BookingRequest): Promise<void> {
-    const headers = await this.getAuthHeader();
-
     console.log('Creating booking with request:', JSON.stringify(booking, null, 2));
 
-    const response = await fetch(`${this.baseUrl}/Booking`, {
+    const response = await this.authenticatedFetch(`${this.baseUrl}/Booking`, {
       method: 'POST',
-      headers,
       body: JSON.stringify(booking),
     });
 
@@ -213,11 +282,8 @@ class EmbravaClient {
    * Get all bookings for a Desk Sign.
    */
   async getBookings(deskSignId: string): Promise<BookingResponse[]> {
-    const headers = await this.getAuthHeader();
-
-    const response = await fetch(`${this.baseUrl}/Booking/${deskSignId}`, {
+    const response = await this.authenticatedFetch(`${this.baseUrl}/Booking/${deskSignId}`, {
       method: 'GET',
-      headers,
     });
 
     if (!response.ok) {
@@ -245,8 +311,6 @@ class EmbravaClient {
    * To delete, send a booking request with Cancel: 1
    */
   async deleteBooking(bookingId: string, deskSignId: string): Promise<void> {
-    const headers = await this.getAuthHeader();
-
     // To delete a booking, we send a POST with Cancel: 1
     const deleteRequest: BookingRequest = {
       DeskSignID: deskSignId,
@@ -261,9 +325,8 @@ class EmbravaClient {
       EmployeeId: '',
     };
 
-    const response = await fetch(`${this.baseUrl}/Booking`, {
+    const response = await this.authenticatedFetch(`${this.baseUrl}/Booking`, {
       method: 'POST',
-      headers,
       body: JSON.stringify(deleteRequest),
     });
 
@@ -284,11 +347,8 @@ class EmbravaClient {
    * Send an alert to a Desk Sign.
    */
   async sendAlert(alert: AlertRequest): Promise<void> {
-    const headers = await this.getAuthHeader();
-
-    const response = await fetch(`${this.baseUrl}/Alert`, {
+    const response = await this.authenticatedFetch(`${this.baseUrl}/Alert`, {
       method: 'POST',
-      headers,
       body: JSON.stringify(alert),
     });
 

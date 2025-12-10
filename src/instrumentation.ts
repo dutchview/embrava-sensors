@@ -6,14 +6,17 @@ export async function register() {
     try {
       // Dynamically import to avoid issues with edge runtime
       const { connectToDatabase } = await import('@/lib/db');
-      const { registerWebhooks } = await import('@/lib/embrava');
+      const { registerWebhooks, embravaClient } = await import('@/lib/embrava');
 
       // 1. Connect to MongoDB
       console.log('Connecting to MongoDB...');
       await connectToDatabase();
       console.log('Connected to MongoDB successfully');
 
-      // 2. Register webhooks if WEBHOOK_BASE_URL is set
+      // 2. Start the token refresh job (refreshes every 5 minutes)
+      embravaClient.startTokenRefreshJob();
+
+      // 3. Register webhooks if WEBHOOK_BASE_URL is set
       const webhookBaseUrl = process.env.WEBHOOK_BASE_URL;
 
       if (webhookBaseUrl) {
