@@ -89,6 +89,21 @@ export async function POST(request: NextRequest) {
         return date.toISOString().replace(/\.\d{3}Z$/, 'Z');
       };
 
+      // Calculate end time: default 18:00, but extend to 22:00 if checking in within 2 hours of 18:00
+      const getEndTime = (now: Date): Date => {
+        const endTime = new Date(now);
+        const hour = now.getHours();
+
+        // If checking in at 16:00 or later (within 2 hours of 18:00), extend to 22:00
+        if (hour >= 16) {
+          endTime.setHours(22, 0, 0, 0);
+        } else {
+          endTime.setHours(18, 0, 0, 0);
+        }
+
+        return endTime;
+      };
+
       const now = new Date();
 
       try {
@@ -139,8 +154,7 @@ export async function POST(request: NextRequest) {
           } else {
             // No existing booking found, create a new one
             console.log('No existing booking found, creating new booking');
-            const endOfDay = new Date(now);
-            endOfDay.setHours(18, 0, 0, 0);
+            const endTime = getEndTime(now);
 
             const bookingId = `BK-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
@@ -150,7 +164,7 @@ export async function POST(request: NextRequest) {
               FirstName: employee.firstName,
               LastName: employee.lastName,
               StartTime: formatDate(now),
-              EndTime: formatDate(endOfDay),
+              EndTime: formatDate(endTime),
               CheckedIn: 1,
               Cancel: 0,
               BadgeNumber: body.booking.badgeNumber,
@@ -167,8 +181,7 @@ export async function POST(request: NextRequest) {
             ? body.booking.ID
             : `BK-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
-          const endOfDay = new Date(now);
-          endOfDay.setHours(18, 0, 0, 0);
+          const endTime = getEndTime(now);
 
           const bookingRequest: BookingRequest = {
             DeskSignID: body.DeskSignID,
@@ -176,7 +189,7 @@ export async function POST(request: NextRequest) {
             FirstName: employee.firstName,
             LastName: employee.lastName,
             StartTime: formatDate(now),
-            EndTime: formatDate(endOfDay),
+            EndTime: formatDate(endTime),
             CheckedIn: 1,
             Cancel: 0,
             BadgeNumber: body.booking.badgeNumber,

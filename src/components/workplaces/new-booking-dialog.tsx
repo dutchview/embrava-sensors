@@ -83,7 +83,6 @@ export function NewBookingDialog({
     }
 
     // Create full datetime objects for comparison
-    const now = new Date();
     const startDateTime = new Date(selectedDate);
     const [startHours, startMinutes] = startTime.split(':').map(Number);
     startDateTime.setHours(startHours, startMinutes, 0, 0);
@@ -91,10 +90,6 @@ export function NewBookingDialog({
     const endDateTime = new Date(selectedDate);
     const [endHours, endMinutes] = endTime.split(':').map(Number);
     endDateTime.setHours(endHours, endMinutes, 0, 0);
-
-    if (startDateTime < now) {
-      return 'Start time cannot be in the past';
-    }
 
     if (endDateTime <= startDateTime) {
       return 'End time must be after start time';
@@ -269,7 +264,6 @@ export function NewBookingDialog({
                     mode="single"
                     selected={selectedDate}
                     onSelect={setSelectedDate}
-                    disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                     initialFocus
                   />
                 </PopoverContent>
