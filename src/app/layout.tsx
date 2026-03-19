@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Embrava Sensors',
-  description: 'Embrava DMS Integration Dashboard',
+  title: 'FlexWhere - Embrava Sensors',
+  description: 'Embrava DMS Integration Dashboard for FlexWhere',
 };
 
 export default function RootLayout({
@@ -31,7 +31,9 @@ export default function RootLayout({
       >
         <div className="min-h-screen bg-background">
           <Nav />
-          <main className="container mx-auto px-4 py-6">{children}</main>
+          <main className="pl-[72px]">
+            <div className="mx-auto max-w-6xl px-6 py-8">{children}</div>
+          </main>
         </div>
         <Toaster />
       </body>
