@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Embrava Sensors
 
-## Getting Started
+Next.js application for integrating Embrava DMS desk sensors with FlexWhere. Manages workplaces, handles webhook events from Embrava sensors, and syncs bookings.
 
-First, run the development server:
+## Quick Start with Claude Code
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+If you have [Claude Code](https://claude.com/claude-code) installed, run the `/dev` skill to set up the entire dev environment in one command:
+
+```
+/dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+This automatically:
+1. Opens ngrok, Docker, and the dev server in separate [cmux](https://github.com/anthropics/claude-code/blob/main/docs/cmux.md) tabs
+2. Polls the ngrok API until the tunnel is ready
+3. Updates `WEBHOOK_BASE_URL` in `.env` with the new ngrok URL
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Dependencies for `/dev`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- [Claude Code](https://claude.com/claude-code) with cmux support
+- [ngrok](https://ngrok.com/) — authenticated and installed
+- [Docker](https://www.docker.com/) — for MongoDB via docker-compose
+- [Bun](https://bun.sh/) — JS runtime
 
-## Learn More
+## Manual Setup
 
-To learn more about Next.js, take a look at the following resources:
+1. **Start MongoDB**
+   ```bash
+   docker-compose up -d
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+2. **Start ngrok tunnel**
+   ```bash
+   ngrok http 3000
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+3. **Set webhook URL in `.env`**
+   ```
+   WEBHOOK_BASE_URL=https://your-url.ngrok-free.app
+   ```
 
-## Deploy on Vercel
+4. **Start the dev server**
+   ```bash
+   bun run dev
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+5. **Add workplaces** — Go to [http://localhost:3000/workplaces](http://localhost:3000/workplaces) and add desk configurations with DeskSignIDs matching your Embrava sensors.

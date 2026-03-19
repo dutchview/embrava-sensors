@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Activity, Building2, Webhook } from 'lucide-react';
+import { Activity, Building2, Terminal, Webhook } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DashboardPage() {
@@ -56,11 +56,23 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      <Card className="border-primary/50 bg-primary/5">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Terminal className="h-5 w-5" />
+            Quick Start with Claude Code
+          </CardTitle>
+          <CardDescription>
+            Use the <code className="bg-muted px-1.5 py-0.5 rounded text-foreground font-mono">/dev</code> skill in Claude Code to automatically set up the entire dev environment in one command — ngrok, Docker, and the dev server.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
       <Card>
         <CardHeader>
-          <CardTitle>Getting Started</CardTitle>
+          <CardTitle>Manual Setup</CardTitle>
           <CardDescription>
-            Follow these steps to start receiving events from Embrava
+            Or follow these steps manually to start receiving events from Embrava
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
