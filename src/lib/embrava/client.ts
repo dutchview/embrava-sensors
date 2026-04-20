@@ -19,7 +19,6 @@ class EmbravaClient {
   private organizationId: string;
   private secretKey: string;
   private cachedToken: CachedToken | null = null;
-  private refreshInterval: NodeJS.Timeout | null = null;
 
   constructor() {
     this.baseUrl = process.env.EMBRAVA_API_BASE_URL || 'https://eusfuncapp01.azurewebsites.net/api';
@@ -28,50 +27,6 @@ class EmbravaClient {
 
     if (!this.organizationId || !this.secretKey) {
       console.warn('Embrava credentials not configured. Set EMBRAVA_ORGANIZATION_ID and EMBRAVA_SECRET_KEY.');
-    }
-  }
-
-  /**
-   * Start the scheduled token refresh job (every 5 minutes).
-   * This ensures we always have a fresh token before it expires.
-   */
-  startTokenRefreshJob(): void {
-    if (this.refreshInterval) {
-      console.log('Token refresh job already running');
-      return;
-    }
-
-    const REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
-
-    console.log('Starting token refresh job (every 5 minutes)');
-
-    // Immediately authenticate on startup
-    this.authenticate().catch((error) => {
-      console.error('Initial authentication failed:', error);
-    });
-
-    // Schedule periodic refresh
-    this.refreshInterval = setInterval(async () => {
-      try {
-        console.log('Scheduled token refresh triggered');
-        await this.forceReauthenticate();
-      } catch (error) {
-        console.error('Scheduled token refresh failed:', error);
-      }
-    }, REFRESH_INTERVAL_MS);
-
-    // Ensure the interval doesn't prevent process exit
-    this.refreshInterval.unref();
-  }
-
-  /**
-   * Stop the scheduled token refresh job.
-   */
-  stopTokenRefreshJob(): void {
-    if (this.refreshInterval) {
-      clearInterval(this.refreshInterval);
-      this.refreshInterval = null;
-      console.log('Token refresh job stopped');
     }
   }
 
